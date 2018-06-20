@@ -189,10 +189,8 @@ class TextCNN():
                                                                                         np.mean(train_acc),
                                                                                         val_acc))
                 # Early stopping condition 
-                if val_acc == 0.6: 
+                if len(val_accuracies) > 3 and sorted(val_accuracies[-3:], reverse=True) == val_accuracies[-3:]:
                     break
-#                 if len(val_accuracies) > 3 and sorted(val_accuracies[-3:], reverse=True) == val_accuracies[-3:]:
-                    #break
                     
 
             model_path = 'final_cnn_model/{}/geniss{}-acc{:4f}-lr{}'.format(geniss,
