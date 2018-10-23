@@ -1,5 +1,6 @@
 import re
 import string
+import pickle
 import itertools
 from zipfile import ZipFile
 
@@ -16,6 +17,10 @@ tokenizer = tokenize.WordPunctTokenizer()
 
 # Sentences data 
 zfile = ZipFile('data/sentences.zip')
+
+# Vocab Index Dictionary 
+with open('data/processed_data/word_index.p', 'rb') as p: 
+    word_index = pickle.load(p)
     
 ################################################################
 # Load data functions 
@@ -35,28 +40,36 @@ def get_all_cases(caseids):
                 cases[idx] = item
     return cases
 
-def build_corpus(cases, labels, geniss=None, topic_filter=None):
+def build_corpus(cases, labels=None, geniss=None, topic_filter=None):
     """
     :return: List of corpus documents, list of labels
     """
-    assert len(labels) == len(geniss)
-    # Find NoneType in training major ops and remove from labels
-    labels = [label for i, label in enumerate(labels) if cases[i] is not None]
-    geniss = [topic for i, topic in enumerate(geniss) if cases[i] is not None]
-    #idx = [i for i, case in enumerate(cases) if cases[i] is not None]
+    if labels is not None: 
+        assert len(labels) == len(geniss)
+        # Find NoneType in training major ops and remove from labels
+        labels = [label for i, label in enumerate(labels) if cases[i] is not None]
+        geniss = [topic for i, topic in enumerate(geniss) if cases[i] is not None]
     cases = [item for item in cases if item is not None]
-    #filtered_additional = additional.iloc(idx)
     if topic_filter:
         idx = [i for i, gen in enumerate(geniss) if geniss[i]==topic_filter]
         labels = [label for i, label in enumerate(labels) if geniss[i]==topic_filter] 
         cases = [case for i, case in enumerate(cases) if geniss[i]==topic_filter]
-        #filtered_additional = filtered_additional.iloc(idx)
-    print('Num Cases: {}, Num Labels: {}'.format(len(cases), len(labels)))
+        print('Num Cases: {}, Num Labels: {}'.format(len(cases), len(labels)))
     caseids = [item.split('/')[2].split('_')[0] for item in cases]
     cases = [' '.join(doc) for doc in document_iterator(cases)]
-    assert len(cases) == len(labels) 
-    return cases, labels, caseids
+    if labels is not None:
+        assert len(cases) == len(labels) 
+        return cases, labels, caseids
+    else: 
+        return cases, caseids
 
+def get_corpus(case): 
+    """
+    Return corpus only 
+    """
+    caseid = case.split('/')[2].split('_')[0]
+    corpus = [' '.join(doc) for doc in document_iterator([case])]
+    return corpus, caseid
 
 def load_ngrams(corpus, ngram_range, tfidf=True, max_features=10000): 
     """
@@ -138,7 +151,6 @@ def one_hot_labels(labels):
     Y_onehot[np.arange(len(labels)), labels] = 1 
     return Y_onehot
 
-
 def trim_and_pad(sequence, max_seq_length): 
     """
     Trim off end if sequence > max_seq_length 
@@ -152,7 +164,10 @@ def trim_and_pad(sequence, max_seq_length):
         pad = np.zeros(diff, dtype=int) 
         return np.concatenate((sequence, pad))
 
-
+def map_corpus_to_int(corpus):
+    int_corpus = [np.array([word_index[word] for word in doc.split(' ')
+                            if word in word_index.keys()]) for doc in corpus]
+    return int_corpus
 
 def document_iterator(items):
     """
@@ -160,8 +175,7 @@ def document_iterator(items):
     """
     
     # Local path of all of our document files    
-    for count, item in enumerate(items):
-            
+    for item in items:         
         if 'contentMajOp' not in item:
             continue
         _,_year,fname = item.split('/')

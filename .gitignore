@@ -1,13 +1,16 @@
+# Data files
 data/*
-predictions/*
-tf_logs/*
-features.csv
+
+# Python
 .idea/*
 .ipynb_checkpoints/*
-LinearModels.ipynb
-final_cnn_model/*
-final_lstm_model/*
-final_sklearn_model/*
+__pycache__/*
+
+# Other related ad-hoc tasks
+related_tasks/*
+
+# Models
+final_models/*
 
 
 
